@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Students Manager</title>
+    <script src="https://code.jquery.com/jquery-3.6.1.min.js"></script>
+    <style>
+    * { font-family: Arial, sans-serif; }
+    table { border-collapse: collapse; }
+    table th, table td { padding: 10px 15px; }
+    table thead tr { border-bottom: 2px solid darkgray; }
+    table tbody tr:nth-child(even) {
+        background-color: #f3f3f3;
+    }
+    table tfoot tr { border-top: 2px solid darkgray; }
+    #error { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Students Manager</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Student Id</th>
+                <th>Name</th>
+                <th>Year of Study</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="table-body">
+        </tbody>
+        <tfoot>
+            <tr>
+                <td><input id="add-id" placeholder="Enter Student Id"></td>
+                <td><input id="add-name" placeholder="Enter Name"></td>
+                <td><input id="add-year" placeholder="Enter Year of Study"></td>
+                <td><button id="add-button">+</button></td>
+            </tr>
+        </tfoot>
+    </table>
+    <p id="error"></p>
+    <script>
+    $(document).ready(function() {
+        // This function sets up the events for the change and delete buttons
+        const setupEvents = function() {
+            $(".change").on("click", (e) => {
+                // Get the data fields
+                const id = $(e.target).attr("data-id");
+                const name = $("#name-" + id).val().trim();
+                const year = $("#year-" + id).val().trim();
+
+                // Show error if any field is empty
+                if (name == "" || year == "") {
+                    $("#error").text("Name or Year of Study cannot be empty.");
+                    return;
+                }
+
+                // Send a post request to change a student
+                fetch("/students/change", {
+                    method: "POST",
+                    headers: { "Content-type": "application/json" },
+                    body: JSON.stringify({ id, name, year })
+                })
+                .then((response) => response.json())
+                .then((result) => {
+                    if (result.success)
+                        loadStudents();
+                    else
+                        $("#error").text(result.error);
+                })
+                .catch((error) => {
+                    $("#error").text(error);
+                });
+            });
+
+            $(".delete").on("click", (e) => {
+                // Get the id field
+                const id = $(e.target).attr("data-id");
+
+                // Send a post request to delete a student
+                fetch("/students/delete", {
+                    method: "POST",
+                    headers: { "Content-type": "application/json" },
+                    body: JSON.stringify({ id })
+                })
+                .then((response) => response.json())
+                .then((result) => {
+                    if (result.success)
+                        loadStudents();
+                    else
+                        $("#error").text(result.error);
+                })
+                .catch((error) => {
+                    $("#error").text(error);
+                });
+            });
+        };
+
+        // This function loads the student table from the server data
+        const loadStudents = function() {
+            $("#table-body").empty();
+
+            // Send a get request to get all students
+            fetch("/students/all")
+            .then((response) => response.json())
+            .then((students) => {
+                // Show the students
+                for (id in students) {
+                    // Get the student's data
+                    const name = students[id].name;
+                    const year = students[id].year;
+
+                    // Put the student as a row
+                    const student = $("<tr></tr>")
+                        .append($("<td>" + id + "</td>"))
+                        .append($("<td><input id='name-" + id + "' value='" + name + "'></td>"))
+                        .append($("<td><input id='year-" + id + "' value='" + year + "'></td>"))
+                        .append($("<td></td>")
+                            .append($("<button class='change' data-id='" + id + "'>Change</button>"))
+                            .append($("<span>&nbsp;</span>"))
+                            .append($("<button class='delete' data-id='" + id + "'>Delete</button>"))
+                        );
+                    $("#table-body").append(student);
+                }
+
+                // Set up the event handlers
+                setupEvents();
+            })
+            .catch((error) => {
+                $("#error").text(error);
+            });
+
+            // Clear the add fields
+            $("#add-id").val("");
+            $("#add-name").val("");
+            $("#add-year").val("");
+        };
+        loadStudents();
+
+        // Set up the click event for the add button
+        $("#add-button").on("click", () => {
+            // Get the data fields
+            const id = $("#add-id").val().trim();
+            const name = $("#add-name").val().trim();
+            const year = $("#add-year").val().trim();
+
+            // Show error if any field is empty
+            if (id == "" || name == "" || year == "") {
+                $("#error").text("Student Id, Name or Year of Study cannot be empty.");
+                return;
+            }
+
+            // Send a post request to add a student
+            fetch("/students/add", {
+                method: "POST",
+                headers: { "Content-type": "application/json" },
+                body: JSON.stringify({ id, name, year })
+            })
+            .then((response) => response.json())
+            .then((result) => {
+                if (result.success)
+                    loadStudents();
+                else
+                    $("#error").text(result.error);
+            })
+            .catch((error) => {
+                $("#error").text(error);
+            });
+        });
+    });
+    </script>
+</body>
+</html>
